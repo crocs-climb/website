@@ -4372,181 +4372,6 @@ function _Browser_load(url)
 }
 
 
-
-// SEND REQUEST
-
-var _Http_toTask = F3(function(router, toTask, request)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		function done(response) {
-			callback(toTask(request.expect.a(response)));
-		}
-
-		var xhr = new XMLHttpRequest();
-		xhr.addEventListener('error', function() { done($elm$http$Http$NetworkError_); });
-		xhr.addEventListener('timeout', function() { done($elm$http$Http$Timeout_); });
-		xhr.addEventListener('load', function() { done(_Http_toResponse(request.expect.b, xhr)); });
-		$elm$core$Maybe$isJust(request.tracker) && _Http_track(router, xhr, request.tracker.a);
-
-		try {
-			xhr.open(request.method, request.url, true);
-		} catch (e) {
-			return done($elm$http$Http$BadUrl_(request.url));
-		}
-
-		_Http_configureRequest(xhr, request);
-
-		request.body.a && xhr.setRequestHeader('Content-Type', request.body.a);
-		xhr.send(request.body.b);
-
-		return function() { xhr.c = true; xhr.abort(); };
-	});
-});
-
-
-// CONFIGURE
-
-function _Http_configureRequest(xhr, request)
-{
-	for (var headers = request.headers; headers.b; headers = headers.b) // WHILE_CONS
-	{
-		xhr.setRequestHeader(headers.a.a, headers.a.b);
-	}
-	xhr.timeout = request.timeout.a || 0;
-	xhr.responseType = request.expect.d;
-	xhr.withCredentials = request.allowCookiesFromOtherDomains;
-}
-
-
-// RESPONSES
-
-function _Http_toResponse(toBody, xhr)
-{
-	return A2(
-		200 <= xhr.status && xhr.status < 300 ? $elm$http$Http$GoodStatus_ : $elm$http$Http$BadStatus_,
-		_Http_toMetadata(xhr),
-		toBody(xhr.response)
-	);
-}
-
-
-// METADATA
-
-function _Http_toMetadata(xhr)
-{
-	return {
-		url: xhr.responseURL,
-		statusCode: xhr.status,
-		statusText: xhr.statusText,
-		headers: _Http_parseHeaders(xhr.getAllResponseHeaders())
-	};
-}
-
-
-// HEADERS
-
-function _Http_parseHeaders(rawHeaders)
-{
-	if (!rawHeaders)
-	{
-		return $elm$core$Dict$empty;
-	}
-
-	var headers = $elm$core$Dict$empty;
-	var headerPairs = rawHeaders.split('\r\n');
-	for (var i = headerPairs.length; i--; )
-	{
-		var headerPair = headerPairs[i];
-		var index = headerPair.indexOf(': ');
-		if (index > 0)
-		{
-			var key = headerPair.substring(0, index);
-			var value = headerPair.substring(index + 2);
-
-			headers = A3($elm$core$Dict$update, key, function(oldValue) {
-				return $elm$core$Maybe$Just($elm$core$Maybe$isJust(oldValue)
-					? value + ', ' + oldValue.a
-					: value
-				);
-			}, headers);
-		}
-	}
-	return headers;
-}
-
-
-// EXPECT
-
-var _Http_expect = F3(function(type, toBody, toValue)
-{
-	return {
-		$: 0,
-		d: type,
-		b: toBody,
-		a: toValue
-	};
-});
-
-var _Http_mapExpect = F2(function(func, expect)
-{
-	return {
-		$: 0,
-		d: expect.d,
-		b: expect.b,
-		a: function(x) { return func(expect.a(x)); }
-	};
-});
-
-function _Http_toDataView(arrayBuffer)
-{
-	return new DataView(arrayBuffer);
-}
-
-
-// BODY and PARTS
-
-var _Http_emptyBody = { $: 0 };
-var _Http_pair = F2(function(a, b) { return { $: 0, a: a, b: b }; });
-
-function _Http_toFormData(parts)
-{
-	for (var formData = new FormData(); parts.b; parts = parts.b) // WHILE_CONS
-	{
-		var part = parts.a;
-		formData.append(part.a, part.b);
-	}
-	return formData;
-}
-
-var _Http_bytesToBlob = F2(function(mime, bytes)
-{
-	return new Blob([bytes], { type: mime });
-});
-
-
-// PROGRESS
-
-function _Http_track(router, xhr, tracker)
-{
-	// TODO check out lengthComputable on loadstart event
-
-	xhr.upload.addEventListener('progress', function(event) {
-		if (xhr.c) { return; }
-		_Scheduler_rawSpawn(A2($elm$core$Platform$sendToSelf, router, _Utils_Tuple2(tracker, $elm$http$Http$Sending({
-			sent: event.loaded,
-			size: event.total
-		}))));
-	});
-	xhr.addEventListener('progress', function(event) {
-		if (xhr.c) { return; }
-		_Scheduler_rawSpawn(A2($elm$core$Platform$sendToSelf, router, _Utils_Tuple2(tracker, $elm$http$Http$Receiving({
-			received: event.loaded,
-			size: event.lengthComputable ? $elm$core$Maybe$Just(event.total) : $elm$core$Maybe$Nothing
-		}))));
-	});
-}
-
 function _Url_percentEncode(string)
 {
 	return encodeURIComponent(string);
@@ -4646,9 +4471,6 @@ var $elm$browser$Browser$Document = F2(
 	function (title, body) {
 		return {body: body, title: title};
 	});
-var $author$project$Main$OnFetchStories = function (a) {
-	return {$: 'OnFetchStories', a: a};
-};
 var $author$project$Main$OnUrlChange = function (a) {
 	return {$: 'OnUrlChange', a: a};
 };
@@ -5365,36 +5187,453 @@ var $elm$core$Task$perform = F2(
 	});
 var $elm$browser$Browser$application = _Browser_application;
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$json$Json$Decode$decodeString = _Json_runOnString;
-var $elm$http$Http$BadStatus_ = F2(
-	function (a, b) {
-		return {$: 'BadStatus_', a: a, b: b};
+var $author$project$Config$init = function (key) {
+	return {navKey: key};
+};
+var $author$project$Main$HomePage = function (a) {
+	return {$: 'HomePage', a: a};
+};
+var $author$project$Pages$Home$NotImpl = {$: 'NotImpl'};
+var $author$project$Pages$Home$init = function (cfg) {
+	return $author$project$Pages$Home$NotImpl;
+};
+var $author$project$Main$init = function (cfg) {
+	return {
+		cfg: cfg,
+		page: $author$project$Main$HomePage(
+			$author$project$Pages$Home$init(cfg))
+	};
+};
+var $elm$core$Platform$Sub$batch = _Platform_batch;
+var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
+var $author$project$Main$BoulderPage = function (a) {
+	return {$: 'BoulderPage', a: a};
+};
+var $author$project$Main$OnBoulderMsg = function (a) {
+	return {$: 'OnBoulderMsg', a: a};
+};
+var $author$project$Main$OnConfigMsg = function (a) {
+	return {$: 'OnConfigMsg', a: a};
+};
+var $author$project$Main$OnHomeMsg = function (a) {
+	return {$: 'OnHomeMsg', a: a};
+};
+var $author$project$Main$OnPushUrl = function (a) {
+	return {$: 'OnPushUrl', a: a};
+};
+var $author$project$Main$OnRouteMsg = function (a) {
+	return {$: 'OnRouteMsg', a: a};
+};
+var $author$project$Main$OnSectorMsg = function (a) {
+	return {$: 'OnSectorMsg', a: a};
+};
+var $author$project$Main$RoutePage = function (a) {
+	return {$: 'RoutePage', a: a};
+};
+var $author$project$Main$SectorPage = function (a) {
+	return {$: 'SectorPage', a: a};
+};
+var $author$project$Util$dbg = F2(
+	function (x, y) {
+		return y;
 	});
-var $elm$http$Http$BadUrl_ = function (a) {
-	return {$: 'BadUrl_', a: a};
+var $elm$browser$Browser$Navigation$load = _Browser_load;
+var $elm$core$Platform$Cmd$map = _Platform_map;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$Main$ErrorPage = function (a) {
+	return {$: 'ErrorPage', a: a};
 };
-var $elm$http$Http$GoodStatus_ = F2(
-	function (a, b) {
-		return {$: 'GoodStatus_', a: a, b: b};
+var $author$project$Pages$Route$NotImpl = {$: 'NotImpl'};
+var $author$project$Pages$Route$init = F2(
+	function (cfg, ref) {
+		return $author$project$Pages$Route$NotImpl;
 	});
-var $elm$http$Http$NetworkError_ = {$: 'NetworkError_'};
-var $elm$http$Http$Receiving = function (a) {
-	return {$: 'Receiving', a: a};
+var $author$project$Main$pageFromRoute = F2(
+	function (r, cfg) {
+		var join = $elm$core$String$join('/');
+		switch (r.$) {
+			case 'Home':
+				return $author$project$Main$HomePage(
+					$author$project$Pages$Home$init(cfg));
+			case 'Error':
+				var url = r.a;
+				return $author$project$Main$ErrorPage(url);
+			case 'Route':
+				var ref = r.a;
+				return $author$project$Main$RoutePage(
+					A2(
+						$author$project$Pages$Route$init,
+						cfg,
+						join(ref)));
+			default:
+				return $author$project$Main$ErrorPage('not implemented');
+		}
+	});
+var $author$project$Routes$Error = function (a) {
+	return {$: 'Error', a: a};
 };
-var $elm$http$Http$Sending = function (a) {
-	return {$: 'Sending', a: a};
+var $author$project$Routes$Home = {$: 'Home'};
+var $author$project$Routes$Parking = function (a) {
+	return {$: 'Parking', a: a};
 };
-var $elm$http$Http$Timeout_ = {$: 'Timeout_'};
-var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
-var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
-var $elm$core$Maybe$isJust = function (maybe) {
-	if (maybe.$ === 'Just') {
-		return true;
-	} else {
-		return false;
+var $author$project$Routes$Profile = function (a) {
+	return {$: 'Profile', a: a};
+};
+var $author$project$Routes$Route = function (a) {
+	return {$: 'Route', a: a};
+};
+var $author$project$Routes$Sector = function (a) {
+	return {$: 'Sector', a: a};
+};
+var $elm$url$Url$Parser$Parser = function (a) {
+	return {$: 'Parser', a: a};
+};
+var $elm$url$Url$Parser$State = F5(
+	function (visited, unvisited, params, frag, value) {
+		return {frag: frag, params: params, unvisited: unvisited, value: value, visited: visited};
+	});
+var $elm$url$Url$Parser$mapState = F2(
+	function (func, _v0) {
+		var visited = _v0.visited;
+		var unvisited = _v0.unvisited;
+		var params = _v0.params;
+		var frag = _v0.frag;
+		var value = _v0.value;
+		return A5(
+			$elm$url$Url$Parser$State,
+			visited,
+			unvisited,
+			params,
+			frag,
+			func(value));
+	});
+var $elm$url$Url$Parser$map = F2(
+	function (subValue, _v0) {
+		var parseArg = _v0.a;
+		return $elm$url$Url$Parser$Parser(
+			function (_v1) {
+				var visited = _v1.visited;
+				var unvisited = _v1.unvisited;
+				var params = _v1.params;
+				var frag = _v1.frag;
+				var value = _v1.value;
+				return A2(
+					$elm$core$List$map,
+					$elm$url$Url$Parser$mapState(value),
+					parseArg(
+						A5($elm$url$Url$Parser$State, visited, unvisited, params, frag, subValue)));
+			});
+	});
+var $elm$core$List$append = F2(
+	function (xs, ys) {
+		if (!ys.b) {
+			return xs;
+		} else {
+			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
+		}
+	});
+var $elm$core$List$concat = function (lists) {
+	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
+};
+var $elm$core$List$concatMap = F2(
+	function (f, list) {
+		return $elm$core$List$concat(
+			A2($elm$core$List$map, f, list));
+	});
+var $elm$url$Url$Parser$oneOf = function (parsers) {
+	return $elm$url$Url$Parser$Parser(
+		function (state) {
+			return A2(
+				$elm$core$List$concatMap,
+				function (_v0) {
+					var parser = _v0.a;
+					return parser(state);
+				},
+				parsers);
+		});
+};
+var $elm$url$Url$Parser$slash = F2(
+	function (_v0, _v1) {
+		var parseBefore = _v0.a;
+		var parseAfter = _v1.a;
+		return $elm$url$Url$Parser$Parser(
+			function (state) {
+				return A2(
+					$elm$core$List$concatMap,
+					parseAfter,
+					parseBefore(state));
+			});
+	});
+var $elm$url$Url$Parser$custom = F2(
+	function (tipe, stringToSomething) {
+		return $elm$url$Url$Parser$Parser(
+			function (_v0) {
+				var visited = _v0.visited;
+				var unvisited = _v0.unvisited;
+				var params = _v0.params;
+				var frag = _v0.frag;
+				var value = _v0.value;
+				if (!unvisited.b) {
+					return _List_Nil;
+				} else {
+					var next = unvisited.a;
+					var rest = unvisited.b;
+					var _v2 = stringToSomething(next);
+					if (_v2.$ === 'Just') {
+						var nextValue = _v2.a;
+						return _List_fromArray(
+							[
+								A5(
+								$elm$url$Url$Parser$State,
+								A2($elm$core$List$cons, next, visited),
+								rest,
+								params,
+								frag,
+								value(nextValue))
+							]);
+					} else {
+						return _List_Nil;
+					}
+				}
+			});
+	});
+var $elm$url$Url$Parser$string = A2($elm$url$Url$Parser$custom, 'STRING', $elm$core$Maybe$Just);
+var $author$project$Routes$paths = function () {
+	var l7 = F7(
+		function (a, b, c, d, e, f, g) {
+			return _List_fromArray(
+				[a, b, c, d, e, f, g]);
+		});
+	var l6 = F6(
+		function (a, b, c, d, e, f) {
+			return _List_fromArray(
+				[a, b, c, d, e, f]);
+		});
+	var l5 = F5(
+		function (a, b, c, d, e) {
+			return _List_fromArray(
+				[a, b, c, d, e]);
+		});
+	var l4 = F4(
+		function (a, b, c, d) {
+			return _List_fromArray(
+				[a, b, c, d]);
+		});
+	var l3 = F3(
+		function (a, b, c) {
+			return _List_fromArray(
+				[a, b, c]);
+		});
+	var l2 = F2(
+		function (a, b) {
+			return _List_fromArray(
+				[a, b]);
+		});
+	var l1 = function (a) {
+		return _List_fromArray(
+			[a]);
+	};
+	return $elm$url$Url$Parser$oneOf(
+		_List_fromArray(
+			[
+				A2(
+				$elm$url$Url$Parser$map,
+				l7,
+				A2(
+					$elm$url$Url$Parser$slash,
+					$elm$url$Url$Parser$string,
+					A2(
+						$elm$url$Url$Parser$slash,
+						$elm$url$Url$Parser$string,
+						A2(
+							$elm$url$Url$Parser$slash,
+							$elm$url$Url$Parser$string,
+							A2(
+								$elm$url$Url$Parser$slash,
+								$elm$url$Url$Parser$string,
+								A2(
+									$elm$url$Url$Parser$slash,
+									$elm$url$Url$Parser$string,
+									A2($elm$url$Url$Parser$slash, $elm$url$Url$Parser$string, $elm$url$Url$Parser$string))))))),
+				A2(
+				$elm$url$Url$Parser$map,
+				l6,
+				A2(
+					$elm$url$Url$Parser$slash,
+					$elm$url$Url$Parser$string,
+					A2(
+						$elm$url$Url$Parser$slash,
+						$elm$url$Url$Parser$string,
+						A2(
+							$elm$url$Url$Parser$slash,
+							$elm$url$Url$Parser$string,
+							A2(
+								$elm$url$Url$Parser$slash,
+								$elm$url$Url$Parser$string,
+								A2($elm$url$Url$Parser$slash, $elm$url$Url$Parser$string, $elm$url$Url$Parser$string)))))),
+				A2(
+				$elm$url$Url$Parser$map,
+				l5,
+				A2(
+					$elm$url$Url$Parser$slash,
+					$elm$url$Url$Parser$string,
+					A2(
+						$elm$url$Url$Parser$slash,
+						$elm$url$Url$Parser$string,
+						A2(
+							$elm$url$Url$Parser$slash,
+							$elm$url$Url$Parser$string,
+							A2($elm$url$Url$Parser$slash, $elm$url$Url$Parser$string, $elm$url$Url$Parser$string))))),
+				A2(
+				$elm$url$Url$Parser$map,
+				l4,
+				A2(
+					$elm$url$Url$Parser$slash,
+					$elm$url$Url$Parser$string,
+					A2(
+						$elm$url$Url$Parser$slash,
+						$elm$url$Url$Parser$string,
+						A2($elm$url$Url$Parser$slash, $elm$url$Url$Parser$string, $elm$url$Url$Parser$string)))),
+				A2(
+				$elm$url$Url$Parser$map,
+				l3,
+				A2(
+					$elm$url$Url$Parser$slash,
+					$elm$url$Url$Parser$string,
+					A2($elm$url$Url$Parser$slash, $elm$url$Url$Parser$string, $elm$url$Url$Parser$string))),
+				A2(
+				$elm$url$Url$Parser$map,
+				l2,
+				A2($elm$url$Url$Parser$slash, $elm$url$Url$Parser$string, $elm$url$Url$Parser$string)),
+				A2($elm$url$Url$Parser$map, l1, $elm$url$Url$Parser$string)
+			]));
+}();
+var $elm$url$Url$Parser$s = function (str) {
+	return $elm$url$Url$Parser$Parser(
+		function (_v0) {
+			var visited = _v0.visited;
+			var unvisited = _v0.unvisited;
+			var params = _v0.params;
+			var frag = _v0.frag;
+			var value = _v0.value;
+			if (!unvisited.b) {
+				return _List_Nil;
+			} else {
+				var next = unvisited.a;
+				var rest = unvisited.b;
+				return _Utils_eq(next, str) ? _List_fromArray(
+					[
+						A5(
+						$elm$url$Url$Parser$State,
+						A2($elm$core$List$cons, next, visited),
+						rest,
+						params,
+						frag,
+						value)
+					]) : _List_Nil;
+			}
+		});
+};
+var $elm$url$Url$Parser$top = $elm$url$Url$Parser$Parser(
+	function (state) {
+		return _List_fromArray(
+			[state]);
+	});
+var $author$project$Routes$matchers = $elm$url$Url$Parser$oneOf(
+	_List_fromArray(
+		[
+			A2($elm$url$Url$Parser$map, $author$project$Routes$Home, $elm$url$Url$Parser$top),
+			A2(
+			$elm$url$Url$Parser$map,
+			$author$project$Routes$Sector,
+			A2(
+				$elm$url$Url$Parser$slash,
+				$elm$url$Url$Parser$s('sectors'),
+				$author$project$Routes$paths)),
+			A2(
+			$elm$url$Url$Parser$map,
+			$author$project$Routes$Route,
+			A2(
+				$elm$url$Url$Parser$slash,
+				$elm$url$Url$Parser$s('routes'),
+				$author$project$Routes$paths)),
+			A2(
+			$elm$url$Url$Parser$map,
+			$author$project$Routes$Parking,
+			A2(
+				$elm$url$Url$Parser$slash,
+				$elm$url$Url$Parser$s('parking'),
+				$author$project$Routes$paths)),
+			A2(
+			$elm$url$Url$Parser$map,
+			$author$project$Routes$Profile,
+			A2(
+				$elm$url$Url$Parser$slash,
+				$elm$url$Url$Parser$s('profiles'),
+				$elm$url$Url$Parser$string))
+		]));
+var $elm$url$Url$Parser$getFirstMatch = function (states) {
+	getFirstMatch:
+	while (true) {
+		if (!states.b) {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var state = states.a;
+			var rest = states.b;
+			var _v1 = state.unvisited;
+			if (!_v1.b) {
+				return $elm$core$Maybe$Just(state.value);
+			} else {
+				if ((_v1.a === '') && (!_v1.b.b)) {
+					return $elm$core$Maybe$Just(state.value);
+				} else {
+					var $temp$states = rest;
+					states = $temp$states;
+					continue getFirstMatch;
+				}
+			}
+		}
 	}
 };
-var $elm$core$Platform$sendToSelf = _Platform_sendToSelf;
+var $elm$url$Url$Parser$removeFinalEmpty = function (segments) {
+	if (!segments.b) {
+		return _List_Nil;
+	} else {
+		if ((segments.a === '') && (!segments.b.b)) {
+			return _List_Nil;
+		} else {
+			var segment = segments.a;
+			var rest = segments.b;
+			return A2(
+				$elm$core$List$cons,
+				segment,
+				$elm$url$Url$Parser$removeFinalEmpty(rest));
+		}
+	}
+};
+var $elm$url$Url$Parser$preparePath = function (path) {
+	var _v0 = A2($elm$core$String$split, '/', path);
+	if (_v0.b && (_v0.a === '')) {
+		var segments = _v0.b;
+		return $elm$url$Url$Parser$removeFinalEmpty(segments);
+	} else {
+		var segments = _v0;
+		return $elm$url$Url$Parser$removeFinalEmpty(segments);
+	}
+};
+var $elm$url$Url$Parser$addToParametersHelp = F2(
+	function (value, maybeList) {
+		if (maybeList.$ === 'Nothing') {
+			return $elm$core$Maybe$Just(
+				_List_fromArray(
+					[value]));
+		} else {
+			var list = maybeList.a;
+			return $elm$core$Maybe$Just(
+				A2($elm$core$List$cons, value, list));
+		}
+	});
+var $elm$url$Url$percentDecode = _Url_percentDecode;
 var $elm$core$Basics$compare = _Utils_compare;
 var $elm$core$Dict$get = F2(
 	function (targetKey, dict) {
@@ -5432,6 +5671,7 @@ var $elm$core$Dict$RBNode_elm_builtin = F5(
 	function (a, b, c, d, e) {
 		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
 	});
+var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$Red = {$: 'Red'};
 var $elm$core$Dict$balance = F5(
 	function (color, key, value, left, right) {
@@ -5908,650 +6148,6 @@ var $elm$core$Dict$update = F3(
 			return A2($elm$core$Dict$remove, targetKey, dictionary);
 		}
 	});
-var $elm$core$Basics$composeR = F3(
-	function (f, g, x) {
-		return g(
-			f(x));
-	});
-var $elm$http$Http$expectStringResponse = F2(
-	function (toMsg, toResult) {
-		return A3(
-			_Http_expect,
-			'',
-			$elm$core$Basics$identity,
-			A2($elm$core$Basics$composeR, toResult, toMsg));
-	});
-var $elm$core$Result$mapError = F2(
-	function (f, result) {
-		if (result.$ === 'Ok') {
-			var v = result.a;
-			return $elm$core$Result$Ok(v);
-		} else {
-			var e = result.a;
-			return $elm$core$Result$Err(
-				f(e));
-		}
-	});
-var $elm$http$Http$BadBody = function (a) {
-	return {$: 'BadBody', a: a};
-};
-var $elm$http$Http$BadStatus = function (a) {
-	return {$: 'BadStatus', a: a};
-};
-var $elm$http$Http$BadUrl = function (a) {
-	return {$: 'BadUrl', a: a};
-};
-var $elm$http$Http$NetworkError = {$: 'NetworkError'};
-var $elm$http$Http$Timeout = {$: 'Timeout'};
-var $elm$http$Http$resolve = F2(
-	function (toResult, response) {
-		switch (response.$) {
-			case 'BadUrl_':
-				var url = response.a;
-				return $elm$core$Result$Err(
-					$elm$http$Http$BadUrl(url));
-			case 'Timeout_':
-				return $elm$core$Result$Err($elm$http$Http$Timeout);
-			case 'NetworkError_':
-				return $elm$core$Result$Err($elm$http$Http$NetworkError);
-			case 'BadStatus_':
-				var metadata = response.a;
-				return $elm$core$Result$Err(
-					$elm$http$Http$BadStatus(metadata.statusCode));
-			default:
-				var body = response.b;
-				return A2(
-					$elm$core$Result$mapError,
-					$elm$http$Http$BadBody,
-					toResult(body));
-		}
-	});
-var $elm$http$Http$expectJson = F2(
-	function (toMsg, decoder) {
-		return A2(
-			$elm$http$Http$expectStringResponse,
-			toMsg,
-			$elm$http$Http$resolve(
-				function (string) {
-					return A2(
-						$elm$core$Result$mapError,
-						$elm$json$Json$Decode$errorToString,
-						A2($elm$json$Json$Decode$decodeString, decoder, string));
-				}));
-	});
-var $elm$http$Http$emptyBody = _Http_emptyBody;
-var $elm$http$Http$Request = function (a) {
-	return {$: 'Request', a: a};
-};
-var $elm$http$Http$State = F2(
-	function (reqs, subs) {
-		return {reqs: reqs, subs: subs};
-	});
-var $elm$http$Http$init = $elm$core$Task$succeed(
-	A2($elm$http$Http$State, $elm$core$Dict$empty, _List_Nil));
-var $elm$core$Process$kill = _Scheduler_kill;
-var $elm$core$Process$spawn = _Scheduler_spawn;
-var $elm$http$Http$updateReqs = F3(
-	function (router, cmds, reqs) {
-		updateReqs:
-		while (true) {
-			if (!cmds.b) {
-				return $elm$core$Task$succeed(reqs);
-			} else {
-				var cmd = cmds.a;
-				var otherCmds = cmds.b;
-				if (cmd.$ === 'Cancel') {
-					var tracker = cmd.a;
-					var _v2 = A2($elm$core$Dict$get, tracker, reqs);
-					if (_v2.$ === 'Nothing') {
-						var $temp$router = router,
-							$temp$cmds = otherCmds,
-							$temp$reqs = reqs;
-						router = $temp$router;
-						cmds = $temp$cmds;
-						reqs = $temp$reqs;
-						continue updateReqs;
-					} else {
-						var pid = _v2.a;
-						return A2(
-							$elm$core$Task$andThen,
-							function (_v3) {
-								return A3(
-									$elm$http$Http$updateReqs,
-									router,
-									otherCmds,
-									A2($elm$core$Dict$remove, tracker, reqs));
-							},
-							$elm$core$Process$kill(pid));
-					}
-				} else {
-					var req = cmd.a;
-					return A2(
-						$elm$core$Task$andThen,
-						function (pid) {
-							var _v4 = req.tracker;
-							if (_v4.$ === 'Nothing') {
-								return A3($elm$http$Http$updateReqs, router, otherCmds, reqs);
-							} else {
-								var tracker = _v4.a;
-								return A3(
-									$elm$http$Http$updateReqs,
-									router,
-									otherCmds,
-									A3($elm$core$Dict$insert, tracker, pid, reqs));
-							}
-						},
-						$elm$core$Process$spawn(
-							A3(
-								_Http_toTask,
-								router,
-								$elm$core$Platform$sendToApp(router),
-								req)));
-				}
-			}
-		}
-	});
-var $elm$http$Http$onEffects = F4(
-	function (router, cmds, subs, state) {
-		return A2(
-			$elm$core$Task$andThen,
-			function (reqs) {
-				return $elm$core$Task$succeed(
-					A2($elm$http$Http$State, reqs, subs));
-			},
-			A3($elm$http$Http$updateReqs, router, cmds, state.reqs));
-	});
-var $elm$core$List$maybeCons = F3(
-	function (f, mx, xs) {
-		var _v0 = f(mx);
-		if (_v0.$ === 'Just') {
-			var x = _v0.a;
-			return A2($elm$core$List$cons, x, xs);
-		} else {
-			return xs;
-		}
-	});
-var $elm$core$List$filterMap = F2(
-	function (f, xs) {
-		return A3(
-			$elm$core$List$foldr,
-			$elm$core$List$maybeCons(f),
-			_List_Nil,
-			xs);
-	});
-var $elm$http$Http$maybeSend = F4(
-	function (router, desiredTracker, progress, _v0) {
-		var actualTracker = _v0.a;
-		var toMsg = _v0.b;
-		return _Utils_eq(desiredTracker, actualTracker) ? $elm$core$Maybe$Just(
-			A2(
-				$elm$core$Platform$sendToApp,
-				router,
-				toMsg(progress))) : $elm$core$Maybe$Nothing;
-	});
-var $elm$http$Http$onSelfMsg = F3(
-	function (router, _v0, state) {
-		var tracker = _v0.a;
-		var progress = _v0.b;
-		return A2(
-			$elm$core$Task$andThen,
-			function (_v1) {
-				return $elm$core$Task$succeed(state);
-			},
-			$elm$core$Task$sequence(
-				A2(
-					$elm$core$List$filterMap,
-					A3($elm$http$Http$maybeSend, router, tracker, progress),
-					state.subs)));
-	});
-var $elm$http$Http$Cancel = function (a) {
-	return {$: 'Cancel', a: a};
-};
-var $elm$http$Http$cmdMap = F2(
-	function (func, cmd) {
-		if (cmd.$ === 'Cancel') {
-			var tracker = cmd.a;
-			return $elm$http$Http$Cancel(tracker);
-		} else {
-			var r = cmd.a;
-			return $elm$http$Http$Request(
-				{
-					allowCookiesFromOtherDomains: r.allowCookiesFromOtherDomains,
-					body: r.body,
-					expect: A2(_Http_mapExpect, func, r.expect),
-					headers: r.headers,
-					method: r.method,
-					timeout: r.timeout,
-					tracker: r.tracker,
-					url: r.url
-				});
-		}
-	});
-var $elm$http$Http$MySub = F2(
-	function (a, b) {
-		return {$: 'MySub', a: a, b: b};
-	});
-var $elm$http$Http$subMap = F2(
-	function (func, _v0) {
-		var tracker = _v0.a;
-		var toMsg = _v0.b;
-		return A2(
-			$elm$http$Http$MySub,
-			tracker,
-			A2($elm$core$Basics$composeR, toMsg, func));
-	});
-_Platform_effectManagers['Http'] = _Platform_createManager($elm$http$Http$init, $elm$http$Http$onEffects, $elm$http$Http$onSelfMsg, $elm$http$Http$cmdMap, $elm$http$Http$subMap);
-var $elm$http$Http$command = _Platform_leaf('Http');
-var $elm$http$Http$subscription = _Platform_leaf('Http');
-var $elm$http$Http$request = function (r) {
-	return $elm$http$Http$command(
-		$elm$http$Http$Request(
-			{allowCookiesFromOtherDomains: false, body: r.body, expect: r.expect, headers: r.headers, method: r.method, timeout: r.timeout, tracker: r.tracker, url: r.url}));
-};
-var $elm$http$Http$get = function (r) {
-	return $elm$http$Http$request(
-		{body: $elm$http$Http$emptyBody, expect: r.expect, headers: _List_Nil, method: 'GET', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
-};
-var $author$project$Config$init = function (key) {
-	return {navKey: key, storyDb: $elm$core$Dict$empty};
-};
-var $author$project$Main$IntroPage = {$: 'IntroPage'};
-var $author$project$Main$init = function (cfg) {
-	return {cfg: cfg, page: $author$project$Main$IntroPage};
-};
-var $elm$json$Json$Decode$list = _Json_decodeList;
-var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
-var $author$project$Story$Story = F9(
-	function (name, bible, ref, utter, context, youtube, image, events, rants) {
-		return {bible: bible, context: context, events: events, image: image, name: name, rants: rants, ref: ref, utter: utter, youtube: youtube};
-	});
-var $author$project$Story$Event = F4(
-	function (title, text, source, image) {
-		return {image: image, source: source, text: text, title: title};
-	});
-var $elm$json$Json$Decode$field = _Json_decodeField;
-var $elm$json$Json$Decode$map4 = _Json_map4;
-var $author$project$Story$Source = F2(
-	function (name, url) {
-		return {name: name, url: url};
-	});
-var $elm$json$Json$Decode$string = _Json_decodeString;
-var $author$project$Story$sourceDecoder = A3(
-	$elm$json$Json$Decode$map2,
-	$author$project$Story$Source,
-	A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'url', $elm$json$Json$Decode$string));
-var $author$project$Story$eventDecoder = A5(
-	$elm$json$Json$Decode$map4,
-	$author$project$Story$Event,
-	A2($elm$json$Json$Decode$field, 'title', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'text', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'source', $author$project$Story$sourceDecoder),
-	A2($elm$json$Json$Decode$field, 'image', $elm$json$Json$Decode$string));
-var $author$project$Story$Rant = F2(
-	function (text, source) {
-		return {source: source, text: text};
-	});
-var $elm$json$Json$Decode$oneOf = _Json_oneOf;
-var $elm$json$Json$Decode$maybe = function (decoder) {
-	return $elm$json$Json$Decode$oneOf(
-		_List_fromArray(
-			[
-				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder),
-				$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing)
-			]));
-};
-var $author$project$Story$rantDecoder = A3(
-	$elm$json$Json$Decode$map2,
-	$author$project$Story$Rant,
-	A2($elm$json$Json$Decode$field, 'text', $elm$json$Json$Decode$string),
-	A2(
-		$elm$json$Json$Decode$field,
-		'source',
-		$elm$json$Json$Decode$maybe($author$project$Story$sourceDecoder)));
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom = $elm$json$Json$Decode$map2($elm$core$Basics$apR);
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required = F3(
-	function (key, valDecoder, decoder) {
-		return A2(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
-			A2($elm$json$Json$Decode$field, key, valDecoder),
-			decoder);
-	});
-var $author$project$Story$storyDecoder = A3(
-	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-	'rants',
-	$elm$json$Json$Decode$list($author$project$Story$rantDecoder),
-	A3(
-		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-		'events',
-		$elm$json$Json$Decode$list($author$project$Story$eventDecoder),
-		A3(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-			'image',
-			$elm$json$Json$Decode$string,
-			A3(
-				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-				'youtube',
-				$elm$json$Json$Decode$string,
-				A3(
-					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-					'context',
-					$elm$json$Json$Decode$string,
-					A3(
-						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-						'utter',
-						$elm$json$Json$Decode$string,
-						A3(
-							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-							'ref',
-							$elm$json$Json$Decode$string,
-							A3(
-								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-								'bible',
-								$elm$json$Json$Decode$string,
-								A3(
-									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-									'name',
-									$elm$json$Json$Decode$string,
-									$elm$json$Json$Decode$succeed($author$project$Story$Story))))))))));
-var $author$project$Main$OnOverviewMsg = function (a) {
-	return {$: 'OnOverviewMsg', a: a};
-};
-var $author$project$Main$OnPushUrl = function (a) {
-	return {$: 'OnPushUrl', a: a};
-};
-var $author$project$Main$OnStoryMsg = function (a) {
-	return {$: 'OnStoryMsg', a: a};
-};
-var $author$project$Main$OverviewPage = function (a) {
-	return {$: 'OverviewPage', a: a};
-};
-var $author$project$Main$StoryPage = function (a) {
-	return {$: 'StoryPage', a: a};
-};
-var $author$project$Main$dbg = F2(
-	function (x, y) {
-		return y;
-	});
-var $elm$browser$Browser$Navigation$load = _Browser_load;
-var $elm$core$Platform$Cmd$map = _Platform_map;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $author$project$Main$ErrorPage = function (a) {
-	return {$: 'ErrorPage', a: a};
-};
-var $author$project$Config$getEntry = F2(
-	function (k, cfg) {
-		return A2($elm$core$Dict$get, k, cfg.storyDb);
-	});
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
-var $author$project$Config$getStory = F2(
-	function (k, cfg) {
-		return A2(
-			$elm$core$Maybe$map,
-			function (x) {
-				return x.story;
-			},
-			A2($author$project$Config$getEntry, k, cfg));
-	});
-var $author$project$Pages$Overview$Model = F2(
-	function (state, cfg) {
-		return {cfg: cfg, state: state};
-	});
-var $author$project$Pages$Overview$ViewOverview = {$: 'ViewOverview'};
-var $author$project$Pages$Overview$init = function (cfg) {
-	return A2($author$project$Pages$Overview$Model, $author$project$Pages$Overview$ViewOverview, cfg);
-};
-var $author$project$Pages$Story$Init = {$: 'Init'};
-var $author$project$Types$NoTransition = {$: 'NoTransition'};
-var $author$project$Pages$Story$init = F2(
-	function (st, cfg) {
-		return {cfg: cfg, state: $author$project$Pages$Story$Init, story: st, transition: $author$project$Types$NoTransition};
-	});
-var $author$project$Main$pageFromRoute = F2(
-	function (r, cfg) {
-		switch (r.$) {
-			case 'Intro':
-				return $author$project$Main$IntroPage;
-			case 'Error':
-				var url = r.a;
-				return $author$project$Main$ErrorPage(url);
-			case 'ViewStory':
-				var key = r.a;
-				var _v1 = A2($author$project$Config$getStory, key, cfg);
-				if (_v1.$ === 'Just') {
-					var story = _v1.a;
-					return $author$project$Main$StoryPage(
-						A2($author$project$Pages$Story$init, story, cfg));
-				} else {
-					return $author$project$Main$ErrorPage(key);
-				}
-			default:
-				return $author$project$Main$OverviewPage(
-					$author$project$Pages$Overview$init(cfg));
-		}
-	});
-var $author$project$Routes$Error = function (a) {
-	return {$: 'Error', a: a};
-};
-var $author$project$Routes$Intro = {$: 'Intro'};
-var $author$project$Routes$Overview = {$: 'Overview'};
-var $author$project$Routes$ViewStory = function (a) {
-	return {$: 'ViewStory', a: a};
-};
-var $elm$url$Url$Parser$Parser = function (a) {
-	return {$: 'Parser', a: a};
-};
-var $elm$url$Url$Parser$State = F5(
-	function (visited, unvisited, params, frag, value) {
-		return {frag: frag, params: params, unvisited: unvisited, value: value, visited: visited};
-	});
-var $elm$url$Url$Parser$mapState = F2(
-	function (func, _v0) {
-		var visited = _v0.visited;
-		var unvisited = _v0.unvisited;
-		var params = _v0.params;
-		var frag = _v0.frag;
-		var value = _v0.value;
-		return A5(
-			$elm$url$Url$Parser$State,
-			visited,
-			unvisited,
-			params,
-			frag,
-			func(value));
-	});
-var $elm$url$Url$Parser$map = F2(
-	function (subValue, _v0) {
-		var parseArg = _v0.a;
-		return $elm$url$Url$Parser$Parser(
-			function (_v1) {
-				var visited = _v1.visited;
-				var unvisited = _v1.unvisited;
-				var params = _v1.params;
-				var frag = _v1.frag;
-				var value = _v1.value;
-				return A2(
-					$elm$core$List$map,
-					$elm$url$Url$Parser$mapState(value),
-					parseArg(
-						A5($elm$url$Url$Parser$State, visited, unvisited, params, frag, subValue)));
-			});
-	});
-var $elm$core$List$append = F2(
-	function (xs, ys) {
-		if (!ys.b) {
-			return xs;
-		} else {
-			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
-		}
-	});
-var $elm$core$List$concat = function (lists) {
-	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
-};
-var $elm$core$List$concatMap = F2(
-	function (f, list) {
-		return $elm$core$List$concat(
-			A2($elm$core$List$map, f, list));
-	});
-var $elm$url$Url$Parser$oneOf = function (parsers) {
-	return $elm$url$Url$Parser$Parser(
-		function (state) {
-			return A2(
-				$elm$core$List$concatMap,
-				function (_v0) {
-					var parser = _v0.a;
-					return parser(state);
-				},
-				parsers);
-		});
-};
-var $elm$url$Url$Parser$s = function (str) {
-	return $elm$url$Url$Parser$Parser(
-		function (_v0) {
-			var visited = _v0.visited;
-			var unvisited = _v0.unvisited;
-			var params = _v0.params;
-			var frag = _v0.frag;
-			var value = _v0.value;
-			if (!unvisited.b) {
-				return _List_Nil;
-			} else {
-				var next = unvisited.a;
-				var rest = unvisited.b;
-				return _Utils_eq(next, str) ? _List_fromArray(
-					[
-						A5(
-						$elm$url$Url$Parser$State,
-						A2($elm$core$List$cons, next, visited),
-						rest,
-						params,
-						frag,
-						value)
-					]) : _List_Nil;
-			}
-		});
-};
-var $elm$url$Url$Parser$custom = F2(
-	function (tipe, stringToSomething) {
-		return $elm$url$Url$Parser$Parser(
-			function (_v0) {
-				var visited = _v0.visited;
-				var unvisited = _v0.unvisited;
-				var params = _v0.params;
-				var frag = _v0.frag;
-				var value = _v0.value;
-				if (!unvisited.b) {
-					return _List_Nil;
-				} else {
-					var next = unvisited.a;
-					var rest = unvisited.b;
-					var _v2 = stringToSomething(next);
-					if (_v2.$ === 'Just') {
-						var nextValue = _v2.a;
-						return _List_fromArray(
-							[
-								A5(
-								$elm$url$Url$Parser$State,
-								A2($elm$core$List$cons, next, visited),
-								rest,
-								params,
-								frag,
-								value(nextValue))
-							]);
-					} else {
-						return _List_Nil;
-					}
-				}
-			});
-	});
-var $elm$url$Url$Parser$string = A2($elm$url$Url$Parser$custom, 'STRING', $elm$core$Maybe$Just);
-var $elm$url$Url$Parser$top = $elm$url$Url$Parser$Parser(
-	function (state) {
-		return _List_fromArray(
-			[state]);
-	});
-var $author$project$Routes$matchers = $elm$url$Url$Parser$oneOf(
-	_List_fromArray(
-		[
-			A2($elm$url$Url$Parser$map, $author$project$Routes$Intro, $elm$url$Url$Parser$top),
-			A2(
-			$elm$url$Url$Parser$map,
-			$author$project$Routes$Overview,
-			$elm$url$Url$Parser$s('final')),
-			A2($elm$url$Url$Parser$map, $author$project$Routes$ViewStory, $elm$url$Url$Parser$string)
-		]));
-var $elm$url$Url$Parser$getFirstMatch = function (states) {
-	getFirstMatch:
-	while (true) {
-		if (!states.b) {
-			return $elm$core$Maybe$Nothing;
-		} else {
-			var state = states.a;
-			var rest = states.b;
-			var _v1 = state.unvisited;
-			if (!_v1.b) {
-				return $elm$core$Maybe$Just(state.value);
-			} else {
-				if ((_v1.a === '') && (!_v1.b.b)) {
-					return $elm$core$Maybe$Just(state.value);
-				} else {
-					var $temp$states = rest;
-					states = $temp$states;
-					continue getFirstMatch;
-				}
-			}
-		}
-	}
-};
-var $elm$url$Url$Parser$removeFinalEmpty = function (segments) {
-	if (!segments.b) {
-		return _List_Nil;
-	} else {
-		if ((segments.a === '') && (!segments.b.b)) {
-			return _List_Nil;
-		} else {
-			var segment = segments.a;
-			var rest = segments.b;
-			return A2(
-				$elm$core$List$cons,
-				segment,
-				$elm$url$Url$Parser$removeFinalEmpty(rest));
-		}
-	}
-};
-var $elm$url$Url$Parser$preparePath = function (path) {
-	var _v0 = A2($elm$core$String$split, '/', path);
-	if (_v0.b && (_v0.a === '')) {
-		var segments = _v0.b;
-		return $elm$url$Url$Parser$removeFinalEmpty(segments);
-	} else {
-		var segments = _v0;
-		return $elm$url$Url$Parser$removeFinalEmpty(segments);
-	}
-};
-var $elm$url$Url$Parser$addToParametersHelp = F2(
-	function (value, maybeList) {
-		if (maybeList.$ === 'Nothing') {
-			return $elm$core$Maybe$Just(
-				_List_fromArray(
-					[value]));
-		} else {
-			var list = maybeList.a;
-			return $elm$core$Maybe$Just(
-				A2($elm$core$List$cons, value, list));
-		}
-	});
-var $elm$url$Url$percentDecode = _Url_percentDecode;
 var $elm$url$Url$Parser$addParam = F2(
 	function (segment, dict) {
 		var _v0 = A2($elm$core$String$split, '=', segment);
@@ -6580,6 +6176,7 @@ var $elm$url$Url$Parser$addParam = F2(
 			return dict;
 		}
 	});
+var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
 var $elm$url$Url$Parser$prepareQuery = function (maybeQuery) {
 	if (maybeQuery.$ === 'Nothing') {
 		return $elm$core$Dict$empty;
@@ -6664,520 +6261,156 @@ var $author$project$Config$pushUrl = F2(
 	function (url, m) {
 		return A2($elm$browser$Browser$Navigation$pushUrl, m.navKey, url);
 	});
-var $elm$core$Dict$fromList = function (assocs) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (_v0, dict) {
-				var key = _v0.a;
-				var value = _v0.b;
-				return A3($elm$core$Dict$insert, key, value, dict);
-			}),
-		$elm$core$Dict$empty,
-		assocs);
-};
-var $elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(x);
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
-};
-var $elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
-var $author$project$Config$storyDbFromList = function (sts) {
-	var _do = F3(
-		function (xs, acc, prev) {
-			_do:
-			while (true) {
-				if (!xs.b) {
-					return acc;
-				} else {
-					var x = xs.a;
-					var ys = xs.b;
-					var next = A2(
-						$elm$core$Maybe$withDefault,
-						'final',
-						A2(
-							$elm$core$Maybe$map,
-							function (h) {
-								return h.name;
-							},
-							$elm$core$List$head(ys)));
-					var entry = {next: next, prev: prev, story: x};
-					var $temp$xs = ys,
-						$temp$acc = A2(
-						$elm$core$List$cons,
-						_Utils_Tuple2(x.name, entry),
-						acc),
-						$temp$prev = x.name;
-					xs = $temp$xs;
-					acc = $temp$acc;
-					prev = $temp$prev;
-					continue _do;
-				}
-			}
-		});
-	return $elm$core$Dict$fromList(
-		A3(_do, sts, _List_Nil, ''));
-};
-var $author$project$Config$setStories = F2(
-	function (sts, m) {
-		return _Utils_update(
-			m,
-			{
-				storyDb: $author$project$Config$storyDbFromList(sts)
-			});
-	});
 var $author$project$Config$update = F2(
-	function (_v0, m) {
-		var sts = _v0.a;
-		return A2($author$project$Config$setStories, sts, m);
-	});
-var $author$project$Pages$Overview$ViewLinks = {$: 'ViewLinks'};
-var $author$project$Pages$Overview$toggle = function (m) {
-	var _v0 = m.state;
-	if (_v0.$ === 'ViewLinks') {
-		return _Utils_update(
-			m,
-			{state: $author$project$Pages$Overview$ViewOverview});
-	} else {
-		return _Utils_update(
-			m,
-			{state: $author$project$Pages$Overview$ViewLinks});
-	}
-};
-var $author$project$Pages$Overview$update = F2(
 	function (msg, m) {
-		if (msg.$ === 'ToggleState') {
-			return _Utils_Tuple2(
-				$author$project$Pages$Overview$toggle(m),
-				$elm$core$Platform$Cmd$none);
-		} else {
-			var url = msg.a;
-			return _Utils_Tuple2(
-				m,
-				A2($author$project$Config$pushUrl, url, m.cfg));
-		}
+		return _Utils_Tuple2(m, $elm$core$Platform$Cmd$none);
 	});
-var $author$project$Pages$Story$OnResetTransition = {$: 'OnResetTransition'};
-var $author$project$Types$Reset = {$: 'Reset'};
-var $author$project$Config$getNextStory = F2(
-	function (k, cfg) {
-		return A2(
-			$elm$core$Maybe$map,
-			function (x) {
-				return x.next;
-			},
-			A2($author$project$Config$getEntry, k, cfg));
-	});
-var $author$project$Config$getPrevStory = F2(
-	function (k, cfg) {
-		return A2(
-			$elm$core$Maybe$map,
-			function (x) {
-				return x.prev;
-			},
-			A2($author$project$Config$getEntry, k, cfg));
-	});
-var $elm$core$Process$sleep = _Process_sleep;
-var $author$project$Types$transitionDuration = function (step) {
-	switch (step.$) {
-		case 'FadeOut':
-			return 150;
-		case 'Reset':
-			return 1;
-		case 'NoTransition':
-			return 0;
-		case 'FromLeft':
-			return 250;
-		default:
-			return 250;
-	}
-};
-var $author$project$Pages$Story$update = F2(
+var $author$project$Pages$Boulder$update = F2(
 	function (msg, m) {
-		switch (msg.$) {
-			case 'ToState':
-				var st = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						m,
-						{state: st}),
-					$elm$core$Platform$Cmd$none);
-			case 'OnResetTransition':
-				return _Utils_Tuple2(
-					_Utils_update(
-						m,
-						{transition: $author$project$Types$Reset}),
-					$elm$core$Platform$Cmd$none);
-			case 'OnPreTransition':
-				var step = msg.a;
-				var nextMsg = msg.b;
-				return _Utils_Tuple2(
-					_Utils_update(
-						m,
-						{transition: step}),
-					A2(
-						$elm$core$Task$perform,
-						function (_v1) {
-							return nextMsg;
-						},
-						$elm$core$Process$sleep(
-							$author$project$Types$transitionDuration(step))));
-			case 'OnPostTransition':
-				var step = msg.a;
-				var nextMsg = msg.b;
-				var task = A2(
-					$elm$core$Task$perform,
-					function (_v3) {
-						return $author$project$Pages$Story$OnResetTransition;
-					},
-					$elm$core$Process$sleep(
-						$author$project$Types$transitionDuration(step)));
-				var _v2 = A2($author$project$Pages$Story$update, nextMsg, m);
-				var _new = _v2.a;
-				var cmd = _v2.b;
-				return _Utils_Tuple2(
-					_Utils_update(
-						_new,
-						{transition: step}),
-					$elm$core$Platform$Cmd$batch(
-						_List_fromArray(
-							[task, cmd])));
-			case 'OnNextStory':
-				var url = A2(
-					$elm$core$Maybe$withDefault,
-					'final',
-					A2($author$project$Config$getNextStory, m.story.name, m.cfg));
-				return _Utils_Tuple2(
-					m,
-					A2($author$project$Config$pushUrl, url, m.cfg));
-			case 'OnPrevStory':
-				var url = A2(
-					$elm$core$Maybe$withDefault,
-					'',
-					A2($author$project$Config$getPrevStory, m.story.name, m.cfg));
-				return _Utils_Tuple2(
-					m,
-					A2($author$project$Config$pushUrl, url, m.cfg));
-			default:
-				return _Utils_Tuple2(
-					m,
-					A2($author$project$Config$pushUrl, '', m.cfg));
-		}
+		return _Utils_Tuple2(m, $elm$core$Platform$Cmd$none);
+	});
+var $author$project$Pages$Home$update = F2(
+	function (msg, m) {
+		return _Utils_Tuple2(m, $elm$core$Platform$Cmd$none);
+	});
+var $author$project$Pages$Route$update = F2(
+	function (msg, m) {
+		return _Utils_Tuple2(m, $elm$core$Platform$Cmd$none);
+	});
+var $author$project$Pages$Sector$update = F2(
+	function (msg, m) {
+		return _Utils_Tuple2(m, $elm$core$Platform$Cmd$none);
 	});
 var $author$project$Main$update = F2(
-	function (msg, m) {
+	function (msg_, m_) {
 		update:
 		while (true) {
-			var m1 = A2($author$project$Main$dbg, 'msg', msg);
-			var _v0 = _Utils_Tuple2(msg, m.page);
-			_v0$8:
+			var page = F4(
+				function (m1, p, m2, cmd) {
+					return _Utils_Tuple2(
+						_Utils_update(
+							m_,
+							{
+								page: m1(p)
+							}),
+						A2($elm$core$Platform$Cmd$map, m2, cmd));
+				});
+			var cfg = m_.cfg;
+			var aux = A2($author$project$Util$dbg, 'msg', msg_);
+			var _v0 = _Utils_Tuple2(msg_, m_.page);
+			_v0$9:
 			while (true) {
 				switch (_v0.a.$) {
 					case 'OnPushUrl':
 						var st = _v0.a.a;
 						return _Utils_Tuple2(
-							m,
-							A2($author$project$Config$pushUrl, st, m.cfg));
+							m_,
+							A2($author$project$Config$pushUrl, st, cfg));
 					case 'OnUrlRequest':
 						if (_v0.a.a.$ === 'Internal') {
 							var url = _v0.a.a.a;
-							var $temp$msg = $author$project$Main$OnPushUrl(
+							var $temp$msg_ = $author$project$Main$OnPushUrl(
 								$elm$url$Url$toString(url)),
-								$temp$m = m;
-							msg = $temp$msg;
-							m = $temp$m;
+								$temp$m_ = m_;
+							msg_ = $temp$msg_;
+							m_ = $temp$m_;
 							continue update;
 						} else {
 							var url = _v0.a.a.a;
 							return _Utils_Tuple2(
-								m,
+								m_,
 								$elm$browser$Browser$Navigation$load(url));
 						}
 					case 'OnUrlChange':
 						var url = _v0.a.a;
 						return _Utils_Tuple2(
 							_Utils_update(
-								m,
+								m_,
 								{
 									page: A2(
 										$author$project$Main$pageFromRoute,
 										$author$project$Routes$parseUrl(url),
-										m.cfg)
+										cfg)
 								}),
 							$elm$core$Platform$Cmd$none);
-					case 'OnStoryMsg':
-						if (_v0.b.$ === 'StoryPage') {
-							var msg_ = _v0.a.a;
-							var m_ = _v0.b.a;
-							var _v1 = A2($author$project$Pages$Story$update, msg_, m_);
-							var page_ = _v1.a;
+					case 'OnHomeMsg':
+						if (_v0.b.$ === 'HomePage') {
+							var msg = _v0.a.a;
+							var m = _v0.b.a;
+							var _v1 = A2($author$project$Pages$Home$update, msg, m);
+							var _new = _v1.a;
 							var cmd = _v1.b;
-							return _Utils_Tuple2(
-								_Utils_update(
-									m,
-									{
-										page: $author$project$Main$StoryPage(page_)
-									}),
-								A2($elm$core$Platform$Cmd$map, $author$project$Main$OnStoryMsg, cmd));
+							return A4(page, $author$project$Main$HomePage, _new, $author$project$Main$OnHomeMsg, cmd);
 						} else {
-							break _v0$8;
+							break _v0$9;
 						}
-					case 'OnOverviewMsg':
-						if (_v0.b.$ === 'OverviewPage') {
-							var msg_ = _v0.a.a;
-							var m_ = _v0.b.a;
-							var _v2 = A2($author$project$Pages$Overview$update, msg_, m_);
-							var page_ = _v2.a;
+					case 'OnRouteMsg':
+						if (_v0.b.$ === 'RoutePage') {
+							var msg = _v0.a.a;
+							var m = _v0.b.a;
+							var _v2 = A2($author$project$Pages$Route$update, msg, m);
+							var _new = _v2.a;
 							var cmd = _v2.b;
-							return _Utils_Tuple2(
-								_Utils_update(
-									m,
-									{
-										page: $author$project$Main$OverviewPage(page_)
-									}),
-								A2($elm$core$Platform$Cmd$map, $author$project$Main$OnOverviewMsg, cmd));
+							return A4(page, $author$project$Main$RoutePage, _new, $author$project$Main$OnRouteMsg, cmd);
 						} else {
-							break _v0$8;
+							break _v0$9;
+						}
+					case 'OnBoulderMsg':
+						if (_v0.b.$ === 'BoulderPage') {
+							var msg = _v0.a.a;
+							var m = _v0.b.a;
+							var _v3 = A2($author$project$Pages$Boulder$update, msg, m);
+							var _new = _v3.a;
+							var cmd = _v3.b;
+							return A4(page, $author$project$Main$BoulderPage, _new, $author$project$Main$OnBoulderMsg, cmd);
+						} else {
+							break _v0$9;
+						}
+					case 'OnSectorMsg':
+						if (_v0.b.$ === 'SectorPage') {
+							var msg = _v0.a.a;
+							var m = _v0.b.a;
+							var _v4 = A2($author$project$Pages$Sector$update, msg, m);
+							var _new = _v4.a;
+							var cmd = _v4.b;
+							return A4(page, $author$project$Main$SectorPage, _new, $author$project$Main$OnSectorMsg, cmd);
+						} else {
+							break _v0$9;
 						}
 					case 'OnConfigMsg':
-						var msg_ = _v0.a.a;
+						var msg = _v0.a.a;
+						var _v5 = A2($author$project$Config$update, msg, cfg);
+						var cfg_ = _v5.a;
+						var cmd = _v5.b;
 						return _Utils_Tuple2(
 							_Utils_update(
-								m,
-								{
-									cfg: A2($author$project$Config$update, msg_, m.cfg)
-								}),
-							$elm$core$Platform$Cmd$none);
-					case 'OnFetchStories':
-						if (_v0.a.a.$ === 'Ok') {
-							var sts = _v0.a.a.a;
-							var _new = _Utils_update(
-								m,
-								{
-									cfg: A2($author$project$Config$setStories, sts, m.cfg)
-								});
-							var _v3 = _new.page;
-							if (_v3.$ === 'ErrorPage') {
-								var url = _v3.a;
-								return _Utils_Tuple2(
-									_new,
-									A2($author$project$Config$pushUrl, url, _new.cfg));
-							} else {
-								return _Utils_Tuple2(_new, $elm$core$Platform$Cmd$none);
-							}
-						} else {
-							break _v0$8;
-						}
+								m_,
+								{cfg: cfg_}),
+							A2($elm$core$Platform$Cmd$map, $author$project$Main$OnConfigMsg, cmd));
 					default:
-						break _v0$8;
+						break _v0$9;
 				}
 			}
-			return _Utils_Tuple2(m, $elm$core$Platform$Cmd$none);
+			return _Utils_Tuple2(m_, $elm$core$Platform$Cmd$none);
 		}
 	});
 var $elm$json$Json$Decode$value = _Json_decodeValue;
-var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
-	});
-var $author$project$Config$firstStory = function (cfg) {
-	return A2(
-		$elm$core$Maybe$map,
-		function (_v1) {
-			var x = _v1.b;
-			return x.story.name;
-		},
-		$elm$core$List$head(
-			A2(
-				$elm$core$List$filter,
-				function (_v0) {
-					var x = _v0.b;
-					return x.prev === '';
-				},
-				$elm$core$Dict$toList(cfg.storyDb))));
+var $author$project$Main$OnParkingMsg = function (a) {
+	return {$: 'OnParkingMsg', a: a};
 };
+var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
 var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $author$project$Types$Quote = F2(
-	function (a, b) {
-		return {$: 'Quote', a: a, b: b};
-	});
-var $elm$html$Html$a = _VirtualDom_node('a');
-var $author$project$Ui$asUrl = function (st) {
-	return 'url(\"' + (st + '\")');
-};
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			$elm$json$Json$Encode$string(string));
-	});
-var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
-var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $elm$html$Html$blockquote = _VirtualDom_node('blockquote');
-var $elm$html$Html$cite = _VirtualDom_node('cite');
-var $elm$html$Html$span = _VirtualDom_node('span');
-var $elm$core$String$words = _String_words;
-var $author$project$Types$viewQuote = function (_v0) {
-	var st = _v0.a;
-	var from = _v0.b;
-	var clean = A2(
-		$elm$core$String$join,
-		' ',
-		$elm$core$String$words(st));
-	var n = $elm$core$String$length(clean);
-	var attrs = (n > 200) ? _List_fromArray(
-		[
-			A2($elm$html$Html$Attributes$style, 'font-size', '0.85em')
-		]) : ((n > 150) ? _List_fromArray(
-		[
-			A2($elm$html$Html$Attributes$style, 'font-size', '0.95em')
-		]) : ((n > 125) ? _List_fromArray(
-		[
-			A2($elm$html$Html$Attributes$style, 'font-size', '1.05em')
-		]) : _List_Nil));
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('Quote')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$blockquote,
-				attrs,
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$span,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text(st)
-							]))
-					])),
-				A2(
-				$elm$html$Html$cite,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$elm$html$Html$text(from)
-					]))
-			]));
-};
-var $author$project$Ui$appShell = F4(
-	function (url, navLink, quote, child) {
-		var contentDiv = A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('MainContent')
-				]),
-			_List_fromArray(
-				[child]));
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('App'),
-					A2(
-					$elm$html$Html$Attributes$style,
-					'background-image',
-					$author$project$Ui$asUrl(url))
-				]),
-			_List_fromArray(
-				[
-					$author$project$Types$viewQuote(quote),
-					contentDiv,
-					navLink
-				]));
-	});
-var $author$project$Ui$emptyNav = $elm$html$Html$text('');
-var $elm$html$Html$button = _VirtualDom_node('button');
-var $elm$html$Html$i = _VirtualDom_node('i');
-var $author$project$Ui$icon = function (which) {
-	return A2(
-		$elm$html$Html$i,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class(which)
-			]),
-		_List_Nil);
-};
-var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var $elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
-var $elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
-};
-var $author$project$Ui$fab = F2(
-	function (msg, cls) {
-		return A2(
-			$elm$html$Html$button,
-			_List_fromArray(
-				[
-					$elm$html$Html$Events$onClick(msg),
-					$elm$html$Html$Attributes$class('FabButton')
-				]),
-			_List_fromArray(
-				[
-					$author$project$Ui$icon(cls)
-				]));
-	});
+var $elm$html$Html$dd = _VirtualDom_node('dd');
+var $elm$html$Html$dl = _VirtualDom_node('dl');
+var $elm$html$Html$dt = _VirtualDom_node('dt');
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
-var $elm$html$Html$Attributes$href = function (url) {
+var $author$project$Pages$Boulder$view = function (m) {
 	return A2(
-		$elm$html$Html$Attributes$stringProperty,
-		'href',
-		_VirtualDom_noJavaScriptUri(url));
-};
-var $elm$html$Html$p = _VirtualDom_node('p');
-var $elm$html$Html$strong = _VirtualDom_node('strong');
-var $author$project$Pages$Intro$view = function (nextMsg) {
-	var quote = A2($author$project$Types$Quote, '\n            E surgirão muitos falsos profetas e enganarão muitos. \n            E, por se multiplicar a iniquidade, o amor de muitos se esfriará.\n            ', 'Mateus 24:11-12');
-	var content = A2(
 		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('ContentBox delay')
-			]),
+		_List_Nil,
 		_List_fromArray(
 			[
 				A2(
@@ -7185,879 +6418,339 @@ var $author$project$Pages$Intro$view = function (nextMsg) {
 				_List_Nil,
 				_List_fromArray(
 					[
-						$elm$html$Html$text('A política é cheia de falsos profetas.')
+						$elm$html$Html$text('Pedra do Belchior')
 					])),
 				A2(
-				$elm$html$Html$p,
+				$elm$html$Html$dl,
 				_List_Nil,
 				_List_fromArray(
 					[
 						A2(
-						$elm$html$Html$strong,
+						$elm$html$Html$dt,
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Bolsonaro')
-							])),
-						$elm$html$Html$text(' se diz cristão, mas será que ele é um deles? Vamos julgar pelas suas ações.')
-					])),
-				A2(
-				$elm$html$Html$a,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$href('#'),
-						$elm$html$Html$Events$onClick(nextMsg)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('continue...')
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('ContentBox-controls')
-					]),
-				_List_fromArray(
-					[
-						A2($author$project$Ui$fab, nextMsg, 'fas fa-chevron-right')
-					]))
-			]));
-	return A4($author$project$Ui$appShell, './static/cruz.jpg', $author$project$Ui$emptyNav, quote, content);
-};
-var $author$project$Pages$Overview$NavTo = function (a) {
-	return {$: 'NavTo', a: a};
-};
-var $author$project$Pages$Overview$ToggleState = {$: 'ToggleState'};
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
-var $elm$html$Html$li = _VirtualDom_node('li');
-var $elm$html$Html$Attributes$target = $elm$html$Html$Attributes$stringProperty('target');
-var $elm$html$Html$ul = _VirtualDom_node('ul');
-var $author$project$Pages$Overview$viewLinkList = function () {
-	var title = function (msg) {
-		return A2(
-			$elm$html$Html$h2,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text(msg)
-				]));
-	};
-	var list = $elm$html$Html$ul(_List_Nil);
-	var item = F3(
-		function (msg, source, url) {
-			return A2(
-				$elm$html$Html$li,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$elm$html$Html$text(msg + ' '),
-						A2(
-						$elm$html$Html$a,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$href(url),
-								$elm$html$Html$Attributes$target('_blank')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('- ' + source)
-							]))
-					]));
-		});
-	return A2(
-		$elm$html$Html$div,
-		_List_Nil,
-		_List_fromArray(
-			[
-				title('Idéias do Bolsonaro'),
-				list(
-				_List_fromArray(
-					[
-						A3(item, 'Bolsonaro em 5 min', 'Mídia Ninja', 'https://www.youtube.com/watch?v=ghCP4r-hzYI&index=5&list=RDDTVALGIYHsc'),
-						A3(item, '26 Bizarrices que o Bolsonaro disse', 'Oscar Filho do CQC', 'https://www.youtube.com/watch?v=DTVALGIYHsc&app=desktop')
-					])),
-				title('Bolsonaro vs a palavra de cristo'),
-				list(
-				_List_fromArray(
-					[
-						A3(item, 'Quem elogia torturador é inimigo de cristo', 'Leandro Karnal', 'https://www.youtube.com/watch?v=P069B2xlFBk&index=6&list=RDDTVALGIYHsc'),
-						A3(item, 'Bolsonaro Cristão', 'website', 'https://www.bolsonarocristao.com/'),
-						A3(item, 'Bolsonaro, milícia e o caso Marielle', 'Policial comenta', 'https://www.youtube.com/watch?v=nQ7kNOAj8YM&index=22&list=RDDTVALGIYHsc')
-					])),
-				title('Autoritarismo e violência'),
-				list(
-				_List_fromArray(
-					[
-						A3(item, '1984: Pilares do Facismo', '#meteoro.doc', 'https://www.youtube.com/watch?v=vgEvVdeT-xs'),
-						A3(item, 'Relações de Bolsonaro e técnicas de manipulação das urnas usando redes sociais (Bolsonaro e Trump)', 'Canal do Slow', 'https://www.youtube.com/watch?v=VUTiRx9wD34')
-					])),
-				title('Junte-se à causa'),
-				list(
-				_List_fromArray(
-					[
-						A3(item, 'Como ', 'Vira voto', 'https://instragram.com/viravoto/')
-					]))
-			]));
-}();
-var $author$project$Pages$Overview$viewLinks = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$class('Events')
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$h1,
-			_List_Nil,
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$span,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Outras referências')
-						])),
-					A2(
-					$elm$html$Html$a,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$href('#'),
-							$elm$html$Html$Events$onClick($author$project$Pages$Overview$ToggleState)
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$i,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('fas fa-times')
-								]),
-							_List_Nil)
-						]))
-				])),
-			$author$project$Pages$Overview$viewLinkList,
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('back')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$a,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$href('#'),
-							$elm$html$Html$Events$onClick($author$project$Pages$Overview$ToggleState)
-						]),
-					_List_fromArray(
-						[
-							$author$project$Ui$icon('fas fa-chevron-left'),
-							$elm$html$Html$text(' voltar')
-						])),
-					$elm$html$Html$text(' | '),
-					A2(
-					$elm$html$Html$a,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$href('#'),
-							$elm$html$Html$Events$onClick(
-							$author$project$Pages$Overview$NavTo('/'))
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('reiniciar '),
-							$author$project$Ui$icon('fas fa-chevron-right')
-						]))
-				]))
-		]));
-var $author$project$Pages$Overview$viewOverview = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$class('ContentBox'),
-			A2($elm$html$Html$Attributes$style, 'transform', 'translateY(-40pt)')
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$h1,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('Sobre nós')
-				])),
-			A2(
-			$elm$html$Html$p,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('\n            Expomos falas e comportamentos de Jair Bolsonaro em sua\n            tragetória política e vida pública usando vídeos e textos da \n            imprensa nacional (sempre linkados), confrontando-os com passagens \n            da Bíblia. \n            ')
-				])),
-			A2(
-			$elm$html$Html$p,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('Tire suas próprias conclusões: Bolsonaro pauta sua vida por valores '),
-					A2(
-					$elm$html$Html$strong,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('democráticos e cristãos?')
-						]))
-				])),
-			A2(
-			$elm$html$Html$p,
-			_List_Nil,
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$a,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$href('#'),
-							$elm$html$Html$Events$onClick($author$project$Pages$Overview$ToggleState)
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Saiba mais')
-						]))
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('ContentBox-controls')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$author$project$Ui$fab,
-					$author$project$Pages$Overview$NavTo('/'),
-					'fas fa-redo')
-				]))
-		]));
-var $author$project$Pages$Overview$view = function (m) {
-	var quote = A2($author$project$Types$Quote, 'E conhecereis a verdade, e a verdade vos libertará.', 'João 8:32');
-	var content = function () {
-		var _v0 = m.state;
-		if (_v0.$ === 'ViewLinks') {
-			return $author$project$Pages$Overview$viewLinks;
-		} else {
-			return $author$project$Pages$Overview$viewOverview;
-		}
-	}();
-	return A4($author$project$Ui$appShell, './static/facepalm.jpg', $author$project$Ui$emptyNav, quote, content);
-};
-var $author$project$Pages$Story$OnResetStory = {$: 'OnResetStory'};
-var $author$project$Ui$navLinks = function (msg) {
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('InitLink')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$a,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$href('#'),
-						$elm$html$Html$Events$onClick(msg)
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$i,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('fas fa-chevron-left')
-							]),
-						_List_Nil),
-						$elm$html$Html$text(' início')
-					]))
-			]));
-};
-var $author$project$Pages$Story$OnNextStory = {$: 'OnNextStory'};
-var $elm$virtual_dom$VirtualDom$lazy = _VirtualDom_lazy;
-var $elm$html$Html$Lazy$lazy = $elm$virtual_dom$VirtualDom$lazy;
-var $author$project$Pages$Story$Events = {$: 'Events'};
-var $author$project$Pages$Story$Expanded = {$: 'Expanded'};
-var $author$project$Pages$Story$ToState = function (a) {
-	return {$: 'ToState', a: a};
-};
-var $author$project$Pages$Story$toggleEvents = function (st) {
-	if (st.$ === 'Events') {
-		return $author$project$Pages$Story$ToState($author$project$Pages$Story$Expanded);
-	} else {
-		return $author$project$Pages$Story$ToState($author$project$Pages$Story$Events);
-	}
-};
-var $elm$html$Html$Attributes$alt = $elm$html$Html$Attributes$stringProperty('alt');
-var $elm$html$Html$img = _VirtualDom_node('img');
-var $elm$html$Html$Attributes$src = function (url) {
-	return A2(
-		$elm$html$Html$Attributes$stringProperty,
-		'src',
-		_VirtualDom_noJavaScriptOrHtmlUri(url));
-};
-var $author$project$Pages$Story$viewSource = function (_v0) {
-	var name = _v0.name;
-	var url = _v0.url;
-	return A2(
-		$elm$html$Html$cite,
-		_List_Nil,
-		_List_fromArray(
-			[
-				$elm$html$Html$text('Fonte: '),
-				A2(
-				$elm$html$Html$a,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$href(url)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text(name)
-					]))
-			]));
-};
-var $author$project$Pages$Story$viewEvent = function (_v0) {
-	var title = _v0.title;
-	var text = _v0.text;
-	var source = _v0.source;
-	var image = _v0.image;
-	var link = function (elem) {
-		return A2(
-			$elm$html$Html$a,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$href(source.url),
-					$elm$html$Html$Attributes$target('_blank'),
-					$elm$html$Html$Attributes$alt(source.name)
-				]),
-			_List_fromArray(
-				[elem]));
-	};
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('Event')
-			]),
-		_List_fromArray(
-			[
-				link(
-				A2(
-					$elm$html$Html$h2,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text(title)
-						]))),
-				link(
-				A2(
-					$elm$html$Html$img,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$src(image)
-						]),
-					_List_Nil)),
-				$elm$html$Html$text(text),
-				$author$project$Pages$Story$viewSource(source)
-			]));
-};
-var $author$project$Pages$Story$viewEvents = function (m) {
-	return A2(
-		$elm$html$Html$Lazy$lazy,
-		function (events) {
-			return A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('Events')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$h1,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$span,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Efeito Bolsonaro')
-									])),
-								A2(
-								$elm$html$Html$a,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$href('#'),
-										$elm$html$Html$Events$onClick(
-										$author$project$Pages$Story$toggleEvents(m.state))
-									]),
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$i,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('fas fa-times')
-											]),
-										_List_Nil)
-									]))
+								$elm$html$Html$text('Cadastrada por:')
 							])),
 						A2(
-						$elm$html$Html$div,
-						_List_Nil,
-						A2($elm$core$List$map, $author$project$Pages$Story$viewEvent, events)),
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('back')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$a,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$href('#'),
-										$elm$html$Html$Events$onClick(
-										$author$project$Pages$Story$toggleEvents(m.state))
-									]),
-								_List_fromArray(
-									[
-										$author$project$Ui$icon('fas fa-chevron-left'),
-										$elm$html$Html$text(' voltar')
-									])),
-								$elm$html$Html$text(' | '),
-								A2(
-								$elm$html$Html$a,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$href('#'),
-										$elm$html$Html$Events$onClick($author$project$Pages$Story$OnNextStory)
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('próxima história '),
-										$author$project$Ui$icon('fas fa-chevron-right')
-									]))
-							]))
-					]));
-		},
-		m.story.events);
-};
-var $author$project$Types$FromLeft = {$: 'FromLeft'};
-var $author$project$Types$FromRight = {$: 'FromRight'};
-var $author$project$Pages$Story$OnPrevStory = {$: 'OnPrevStory'};
-var $author$project$Ui$fabText = F2(
-	function (msg, txt) {
-		return A2(
-			$elm$html$Html$button,
-			_List_fromArray(
-				[
-					$elm$html$Html$Events$onClick(msg),
-					$elm$html$Html$Attributes$class('FabButton'),
-					A2($elm$html$Html$Attributes$style, 'border-radius', '20px'),
-					A2($elm$html$Html$Attributes$style, 'padding', '0 0.5em'),
-					A2($elm$html$Html$Attributes$style, 'width', 'inherit')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$span,
-					_List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$style, 'font-size', '70%'),
-							A2($elm$html$Html$Attributes$style, 'padding', '0.5em')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text(txt)
-						]))
-				]));
-	});
-var $author$project$Types$FadeOut = {$: 'FadeOut'};
-var $author$project$Pages$Story$OnPostTransition = F2(
-	function (a, b) {
-		return {$: 'OnPostTransition', a: a, b: b};
-	});
-var $author$project$Pages$Story$OnPreTransition = F2(
-	function (a, b) {
-		return {$: 'OnPreTransition', a: a, b: b};
-	});
-var $author$project$Pages$Story$fadeAndThen = F2(
-	function (trans, msg) {
-		return A2(
-			$author$project$Pages$Story$OnPreTransition,
-			$author$project$Types$FadeOut,
-			A2($author$project$Pages$Story$OnPostTransition, trans, msg));
-	});
-var $elm$core$List$isEmpty = function (xs) {
-	if (!xs.b) {
-		return true;
-	} else {
-		return false;
-	}
-};
-var $elm$html$Html$q = _VirtualDom_node('q');
-var $author$project$Pages$Story$toggleExpanded = function (st) {
-	if (st.$ === 'Expanded') {
-		return $author$project$Pages$Story$ToState($author$project$Pages$Story$Init);
-	} else {
-		return $author$project$Pages$Story$ToState($author$project$Pages$Story$Expanded);
-	}
-};
-var $author$project$Pages$Story$Video = {$: 'Video'};
-var $author$project$Pages$Story$toggleVideo = function (st) {
-	if (st.$ === 'Video') {
-		return $author$project$Pages$Story$ToState($author$project$Pages$Story$Init);
-	} else {
-		return $author$project$Pages$Story$ToState($author$project$Pages$Story$Video);
-	}
-};
-var $author$project$Pages$Story$viewRant = function (rant) {
-	var links = function () {
-		var _v0 = rant.source;
-		if (_v0.$ === 'Just') {
-			var name = _v0.a.name;
-			var url = _v0.a.url;
-			return _List_fromArray(
-				[
-					A2(
-					$elm$html$Html$cite,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('- veja mais: '),
-							A2(
-							$elm$html$Html$a,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$href(url),
-									$elm$html$Html$Attributes$target('_blank')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text(name)
-								]))
-						]))
-				]);
-		} else {
-			return _List_Nil;
-		}
-	}();
-	return A2(
-		$elm$html$Html$div,
-		_List_Nil,
-		A2(
-			$elm$core$List$cons,
-			A2(
-				$elm$html$Html$q,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$elm$html$Html$text(rant.text)
-					])),
-			links));
-};
-var $author$project$Pages$Story$viewExpandedOrInit = F2(
-	function (expand, m) {
-		var st = m.story;
-		var backCover = A2(
-			$elm$html$Html$a,
-			_List_fromArray(
-				[
-					$elm$html$Html$Events$onClick(
-					$author$project$Pages$Story$toggleExpanded(m.state)),
-					$elm$html$Html$Attributes$href('#')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$i,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('fas fa-chevron-left')
-						]),
-					_List_Nil),
-					$elm$html$Html$text(' voltar')
-				]));
-		var navChildren = $elm$core$List$isEmpty(st.rants) ? _List_fromArray(
-			[backCover]) : _List_fromArray(
-			[
-				backCover,
-				$elm$html$Html$text(' | '),
-				A2(
-				$elm$html$Html$a,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick(
-						$author$project$Pages$Story$toggleEvents(m.state)),
-						$elm$html$Html$Attributes$href('#')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('notícias '),
-						A2(
-						$elm$html$Html$i,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('fas fa-chevron-right')
-							]),
-						_List_Nil)
-					]))
-			]);
-		var _v0 = expand ? _Utils_Tuple2(
-			'ContentBox ContentBox--rants',
-			A2(
-				$author$project$Ui$fab,
-				$author$project$Pages$Story$toggleExpanded(m.state),
-				'fas fa-minus')) : _Utils_Tuple2(
-			'ContentBox',
-			A2(
-				$author$project$Ui$fabText,
-				$author$project$Pages$Story$toggleExpanded(m.state),
-				'saiba mais'));
-		var parentClass = _v0.a;
-		var fabMiddle = _v0.b;
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class(parentClass)
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$q,
-							_List_Nil,
-							_List_fromArray(
-								[
-									$elm$html$Html$text(st.utter)
-								]))
-						])),
-					A2(
-					$elm$html$Html$cite,
-					_List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$style, 'color', '#000b')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('- ' + st.context)
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$style, 'margin-bottom', '1em')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$a,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$href('#'),
-									$elm$html$Html$Events$onClick(
-									$author$project$Pages$Story$toggleVideo(m.state))
-								]),
-							_List_fromArray(
-								[
-									$author$project$Ui$icon('fab black fa-youtube'),
-									$elm$html$Html$text(' veja o vídeo')
-								]))
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('ContentBox-controls')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$author$project$Ui$fab,
-							A2($author$project$Pages$Story$fadeAndThen, $author$project$Types$FromRight, $author$project$Pages$Story$OnPrevStory),
-							'fas fa-chevron-left'),
-							fabMiddle,
-							A2(
-							$author$project$Ui$fab,
-							A2($author$project$Pages$Story$fadeAndThen, $author$project$Types$FromLeft, $author$project$Pages$Story$OnNextStory),
-							'fas fa-chevron-right')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('Rants')
-						]),
-					_Utils_ap(
-						A2($elm$core$List$map, $author$project$Pages$Story$viewRant, st.rants),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('Rants-nav')
-									]),
-								navChildren)
-							])))
-				]));
-	});
-var $elm$virtual_dom$VirtualDom$attribute = F2(
-	function (key, value) {
-		return A2(
-			_VirtualDom_attribute,
-			_VirtualDom_noOnOrFormAction(key),
-			_VirtualDom_noJavaScriptOrHtmlUri(value));
-	});
-var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
-var $elm$html$Html$Attributes$height = function (n) {
-	return A2(
-		_VirtualDom_attribute,
-		'height',
-		$elm$core$String$fromInt(n));
-};
-var $elm$html$Html$iframe = _VirtualDom_node('iframe');
-var $elm$virtual_dom$VirtualDom$property = F2(
-	function (key, value) {
-		return A2(
-			_VirtualDom_property,
-			_VirtualDom_noInnerHtmlOrFormAction(key),
-			_VirtualDom_noJavaScriptOrHtmlJson(value));
-	});
-var $elm$html$Html$Attributes$property = $elm$virtual_dom$VirtualDom$property;
-var $elm$html$Html$Attributes$width = function (n) {
-	return A2(
-		_VirtualDom_attribute,
-		'width',
-		$elm$core$String$fromInt(n));
-};
-var $author$project$Ui$youtubeIframe = F2(
-	function (cls, url) {
-		var normalizedUrl = url;
-		return A2(
-			$elm$html$Html$iframe,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$width(500),
-					$elm$html$Html$Attributes$height(375),
-					A2($elm$html$Html$Attributes$attribute, 'max-width', '100%'),
-					$elm$html$Html$Attributes$class(cls),
-					$elm$html$Html$Attributes$src(normalizedUrl),
-					A2(
-					$elm$html$Html$Attributes$property,
-					'title',
-					$elm$json$Json$Encode$string('Youtube')),
-					A2(
-					$elm$html$Html$Attributes$property,
-					'frameborder',
-					$elm$json$Json$Encode$string('0')),
-					A2(
-					$elm$html$Html$Attributes$property,
-					'allowfullscreen',
-					$elm$json$Json$Encode$string('true')),
-					A2(
-					$elm$html$Html$Attributes$property,
-					'allow',
-					$elm$json$Json$Encode$string('accelerometer; autoplay; encrypted-media; clipboard-write; gyroscope; picture-in-picture')),
-					A2($elm$html$Html$Attributes$attribute, 'allowfullscreen', 'true')
-				]),
-			_List_Nil);
-	});
-var $author$project$Pages$Story$viewVideo = function (m) {
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('Video')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('Video-overlay')
-					]),
-				_List_Nil),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('Video-content')
-					]),
-				_List_fromArray(
-					[
-						A2($author$project$Ui$youtubeIframe, '', m.story.youtube),
-						A2(
-						$elm$html$Html$div,
+						$elm$html$Html$dd,
 						_List_Nil,
 						_List_fromArray(
 							[
-								A2($author$project$Ui$fab, $author$project$Pages$Story$OnPrevStory, 'fas fa-chevron-left'),
-								A2(
-								$author$project$Ui$fab,
-								$author$project$Pages$Story$toggleVideo(m.state),
-								'fas fa-times'),
-								A2($author$project$Ui$fab, $author$project$Pages$Story$OnNextStory, 'fas fa-chevron-right')
+								$elm$html$Html$text('Matheus Martins, em 15-04-2019')
+							])),
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Descrição:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Pedreira de calcário, predominantemente vertical, escalada técnica, aproximadamente 200 vias (Esportivas, mistas e móvel)')
+							])),
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Como chegar à base:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('O estacionamento é feito em uma casa, atravessar uma plantação, passar uma pinguela de madeira. Depois vai depender do setor que você deseja ir.')
+							])),
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Coordenadas:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('15.130396887678653,-47.756660943702855')
 							]))
 					]))
 			]));
 };
-var $author$project$Pages$Story$view = function (m) {
-	var quote = A2($author$project$Types$Quote, m.story.bible, m.story.ref);
-	var content = function () {
-		var _v0 = m.state;
-		switch (_v0.$) {
-			case 'Init':
-				return A2($author$project$Pages$Story$viewExpandedOrInit, false, m);
-			case 'Expanded':
-				return A2($author$project$Pages$Story$viewExpandedOrInit, true, m);
-			case 'Events':
-				return $author$project$Pages$Story$viewEvents(m);
-			default:
-				return $author$project$Pages$Story$viewVideo(m);
-		}
-	}();
-	return A4(
-		$author$project$Ui$appShell,
-		'.' + m.story.image,
-		$author$project$Ui$navLinks($author$project$Pages$Story$OnResetStory),
-		quote,
-		content);
+var $author$project$Pages$Home$view = function (m) {
+	return $elm$html$Html$text('MAIN');
 };
-var $author$project$Main$view = function (m) {
-	var _v0 = m.page;
+var $author$project$Pages$Parking$view = function (m) {
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$h1,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Pedra do Belchior')
+					])),
+				A2(
+				$elm$html$Html$dl,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Cadastrada por:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Matheus Martins, em 15-04-2019')
+							])),
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Descrição:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Pedreira de calcário, predominantemente vertical, escalada técnica, aproximadamente 200 vias (Esportivas, mistas e móvel)')
+							])),
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Como chegar à base:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('O estacionamento é feito em uma casa, atravessar uma plantação, passar uma pinguela de madeira. Depois vai depender do setor que você deseja ir.')
+							])),
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Coordenadas:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('15.130396887678653,-47.756660943702855')
+							]))
+					]))
+			]));
+};
+var $author$project$Pages$Route$view = function (m) {
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$h1,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Pedra do Belchior')
+					])),
+				A2(
+				$elm$html$Html$dl,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Cadastrada por:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Matheus Martins, em 15-04-2019')
+							])),
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Descrição:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Pedreira de calcário, predominantemente vertical, escalada técnica, aproximadamente 200 vias (Esportivas, mistas e móvel)')
+							])),
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Como chegar à base:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('O estacionamento é feito em uma casa, atravessar uma plantação, passar uma pinguela de madeira. Depois vai depender do setor que você deseja ir.')
+							])),
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Coordenadas:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('15.130396887678653,-47.756660943702855')
+							]))
+					]))
+			]));
+};
+var $author$project$Pages$Sector$view = function (m) {
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$h1,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Pedra do Belchior')
+					])),
+				A2(
+				$elm$html$Html$dl,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Cadastrada por:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Matheus Martins, em 15-04-2019')
+							])),
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Descrição:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Pedreira de calcário, predominantemente vertical, escalada técnica, aproximadamente 200 vias (Esportivas, mistas e móvel)')
+							])),
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Como chegar à base:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('O estacionamento é feito em uma casa, atravessar uma plantação, passar uma pinguela de madeira. Depois vai depender do setor que você deseja ir.')
+							])),
+						A2(
+						$elm$html$Html$dt,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Coordenadas:')
+							])),
+						A2(
+						$elm$html$Html$dd,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('15.130396887678653,-47.756660943702855')
+							]))
+					]))
+			]));
+};
+var $author$project$Main$view = function (model) {
+	var _v0 = model.page;
 	switch (_v0.$) {
-		case 'IntroPage':
-			return $author$project$Pages$Intro$view(
-				$author$project$Main$OnPushUrl(
-					A2(
-						$elm$core$Maybe$withDefault,
-						'final',
-						$author$project$Config$firstStory(m.cfg))));
+		case 'HomePage':
+			var m = _v0.a;
+			return A2(
+				$elm$html$Html$map,
+				$author$project$Main$OnHomeMsg,
+				$author$project$Pages$Home$view(m));
+		case 'RoutePage':
+			var m = _v0.a;
+			return A2(
+				$elm$html$Html$map,
+				$author$project$Main$OnRouteMsg,
+				$author$project$Pages$Route$view(m));
+		case 'SectorPage':
+			var m = _v0.a;
+			return A2(
+				$elm$html$Html$map,
+				$author$project$Main$OnSectorMsg,
+				$author$project$Pages$Sector$view(m));
+		case 'BoulderPage':
+			var m = _v0.a;
+			return A2(
+				$elm$html$Html$map,
+				$author$project$Main$OnBoulderMsg,
+				$author$project$Pages$Boulder$view(m));
+		case 'ParkingPage':
+			var m = _v0.a;
+			return A2(
+				$elm$html$Html$map,
+				$author$project$Main$OnParkingMsg,
+				$author$project$Pages$Parking$view(m));
 		case 'ErrorPage':
 			var st = _v0.a;
 			return A2(
@@ -8067,29 +6760,17 @@ var $author$project$Main$view = function (m) {
 					[
 						$elm$html$Html$text('error :' + st)
 					]));
-		case 'StoryPage':
-			var m_ = _v0.a;
-			return A2(
-				$elm$html$Html$map,
-				$author$project$Main$OnStoryMsg,
-				$author$project$Pages$Story$view(m_));
 		default:
-			var m_ = _v0.a;
 			return A2(
-				$elm$html$Html$map,
-				$author$project$Main$OnOverviewMsg,
-				$author$project$Pages$Overview$view(m_));
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('NOT IMPLEMENTED')
+					]));
 	}
 };
 var $author$project$Main$main = function () {
-	var fetchStories = $elm$http$Http$get(
-		{
-			expect: A2(
-				$elm$http$Http$expectJson,
-				$author$project$Main$OnFetchStories,
-				$elm$json$Json$Decode$list($author$project$Story$storyDecoder)),
-			url: './static/data.json'
-		});
 	var initFn = F3(
 		function (flags, url, key) {
 			var _v1 = A2(
@@ -8103,7 +6784,7 @@ var $author$project$Main$main = function () {
 				m,
 				$elm$core$Platform$Cmd$batch(
 					_List_fromArray(
-						[fetchStories, cmd])));
+						[cmd])));
 		});
 	return $elm$browser$Browser$application(
 		{
@@ -8117,7 +6798,7 @@ var $author$project$Main$main = function () {
 			view: function (m) {
 				return A2(
 					$elm$browser$Browser$Document,
-					'Bolsonaro, o falso profeta',
+					'CROCS',
 					_List_fromArray(
 						[
 							$author$project$Main$view(m)
