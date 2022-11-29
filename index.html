@@ -1,61 +1,23 @@
 <html>
 <head>
 	<meta charset="UTF-8">
-	<title>Links</title>
-	<meta property="og:title" content="Bolsonaro, o falso profeta">
+	<meta property="og:title" content="CROCS">
 	<meta property="og:type" content="website">
-	<meta property="og:url" content="http://falso-profeta.com/">
-	<meta property="og:image" content="./static/capa.png">
+	<meta property="og:url" content="http://crocs-climb.github.io/site/">
+	<meta property="og:image" content="./static/cover.jpg">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="icon" type="image/svg+xml" href="/vite.svg" />
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.css" rel="stylesheet">
 	<link href="https://use.fontawesome.com/releases/v5.4.1/css/all.css" rel="stylesheet">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600&family=Roboto+Slab:wght@400;600&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="./static/main.css">
-	<script>
-		(async () => {
-			if ("serviceWorker" in navigator) {
-				try {
-				const registration = await navigator.serviceWorker.register("./sw.js", {
-					scope: "/",
-				});
-				if (registration.installing) {
-					console.log("Service worker installing");
-				} else if (registration.waiting) {
-					console.log("Service worker installed");
-				} else if (registration.active) {
-					console.log("Service worker active");
-				}
-				} catch (error) {
-				console.error(`Registration failed with ${error}`);
-				}
-			}
-		})();
-	</script>
-	<script type="text/javascript" src="./static/main.js"></script>
+	<link rel="stylesheet" href="./src/css/main.css">
+	<script type="module" src="./src/js/main.js"></script>
+	<title>CROCS</title>
 </head>
 
 <body>
 	<div id="app"></div>
 </body>
-
-
-<!-- Removes splash and starts elm app. -->
-<script type="text/javascript">
-	Elm.Main.init({ node: document.getElementById("app") });
-	if (window.location.hostname === "falso-profeta.github.io") {
-		window.location.href = 'http://falso-profeta.com';
-	}
-</script>
-
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-128067823-1"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'UA-128067823-1');
-  gtag('config', 'G-339324661');
-</script>
 </html>

@@ -1,25 +1,25 @@
-FALSO PROFETA
-=============
+CROCS
+=====
 
-Site dedicado à mostrar algumas verdades sobre o presidente Jair Messias Bolsonaro. Código caótico, feito as pressas, misturando inglês e português, mas os usuários provavelmente não vão perceber isto ;-)
-
-
-Instalação
-----------
-
-O site possui conteúdo estático e está hospedado no Github pages e no CloudFlare pages.
+A climbing APP with useful information and topos about crags, boulders, and routes. The live website can be accessed from http://crocs.github.io/site/
 
 
-Desenvolvimento
----------------
+Local development environment
+-----------------------------
 
-Instale nix e direnv para construir o ambiente automaticamente ao entrar no diretório.
+The project uses nix with [direnv](https://direnv.net/). If your dev environment is properly configured], just `ls` to the project directory and let the magic happen. After nix builds the base environment, type ``inv configure`` to finish the configuration. ``inv dev`` starts the development server.
 
-Se quiser construir tudo manualmente, instale as seguintes dependências:
 
-- elm 0.19.1
-- sassc
-- python + inkove + toolz + yaml
-- e mais algumas outras listadas no arquivo shell.nix.
+Tooling and tech stack
+----------------------
 
-É possível reconstruir o site usando comandos do invoke em um ambiente com as dependências necessárias instaladas (``inv -l`` para ver a lista de comandos).
+Frontend:
+* Elm for the main SPA
+* TailwindCSS and [DaisyUI](https://daisyui.com/) for CSS
+* [Lunrjs](https://lunrjs.com/) for static search
+* Vite for packaging and other tooling 
+
+Backend:
+* FastAPI
+* Tortoise ORM
+* Invoke for scripts

@@ -1,7 +1,7 @@
 { pkgs ? import <nixpkgs> {} }:
 let
   tools = with pkgs; [
-    sassc
+    nodejs
     jq
     nodePackages.uglify-js
     nodePackages.clean-css-cli
